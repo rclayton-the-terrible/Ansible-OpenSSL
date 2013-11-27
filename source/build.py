@@ -1,10 +1,11 @@
 import os, shutil
 
-BUILD_DIR = ".."
+BUILD_DIR = "../dist"
 
 FILES_TO_BUILD = [
-    { "file": "ca.py", "module": "ca_module.py", "library": "ca.py", "import": "from ca import CA" },
-    #{ "file": "", "module": "", "library": "", "import": "" },
+    { "file": "ca", "module": "ca_module.py", "library": "ca.py", "import": "from ca import CA" },
+    { "file": "certificate", "module": "certificate_module.py", "library": "certificate.py", "import": "from certificate import Certificate" },
+    { "file": "keytool", "module": "keytool_module.py", "library": "keytool.py", "import": "from keytool import Keytool" }
 ]
 
 def read_file(filename):

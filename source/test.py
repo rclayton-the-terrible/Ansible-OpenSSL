@@ -1,6 +1,8 @@
 
 from ca import CA
 from certificate import Certificate
+from keytool import Keytool
+import os
 
 line = "----------------------------------------------"
 
@@ -37,5 +39,17 @@ print line
 print "Removing cert for test2.openampere.com"
 s2.remove_certificate()
 
+keytool = Keytool(cadir, "client2.openampere.com", "abc123!@#`902", [ "test.openampere.com" ])
 
+print line
+print "Validating keytool config"
+print keytool.validate()
+
+print line
+print "Building truststore"
+print keytool.build_trust_store()
+
+print line
+print "Removing truststore"
+#print keytool.remove_trust_store()
 

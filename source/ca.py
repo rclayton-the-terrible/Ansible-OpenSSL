@@ -3,7 +3,7 @@ from subprocess import call
 
 KEY_STENGTH = 2048
 DAYS_VALID  = 3653 # ~10 years
-TMPL_CA_CERT = "openssl req -x509 -config openssl.cnf -newkey rsa:{} -days {} -out cacert.pem -outform PEM -subj {} -nodes"
+TMPL_CA_CERT = "openssl req -x509 -config openssl.cnf -newkey rsa:{0} -days {1} -out cacert.pem -outform PEM -subj {2} -nodes"
 TMPL_CONVERT = "openssl x509 -in cacert.pem -out cacert.cer -outform DER"
 DEV_NULL = open('/dev/null', 'w')
 
@@ -99,6 +99,8 @@ class CA:
         changed = False
         changes = []
 
+        CURDIR = os.getcwd()
+
         os.chdir(self.cadir)
 
         fileOpensslCnf = "openssl.cnf"
@@ -157,14 +159,16 @@ class CA:
             changes.append("Converted CA certificate to DER format.")
             changed = True
 
+        os.chdir(CURDIR)
+
         return dict(success=True, changed=changed, changes=changes)
 
     def removeCA(self):
 
         if os.path.exists(self.cadir):
             shutil.rmtree(self.cadir)
-            return dict(success=True, changed=True, changes=["Directory '{}' removed".format(self.cadir)])
+            return dict(success=True, changed=True, changes=["Directory '{0}' removed".format(self.cadir)])
         else:
-            return dict(success=True, changed=False, changes=[], msg="CA directory '{}' does not exist.".format(self.cadir))
+            return dict(success=True, changed=False, changes=[], msg="CA directory '{0}' does not exist.".format(self.cadir))
 
 

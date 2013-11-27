@@ -1,16 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from certificate import Certificate
+from keytool import Keytool
 
 def main():
 
     BASE_MODULE_ARGS = dict(
         cadir = dict(default="/etc/certs"),
         hostname = dict(required=True),
-        subj = dict(default="/DC=com/DC=example/CN=CA/"),
-        p12password = dict(required=True),
-        certtype = dict(default="server", choices=["server", "client"]),
+        store_password = dict(required=True),
+        hosts_to_trust = dict(required=True, type="list"),
         state = dict(default="present", choices=["present", "absent"])
     )
 
@@ -19,27 +18,20 @@ def main():
         supports_check_mode=True
     )
 
-    isServerCert = True
-
-    if module.params["certtype"] == "client":
-        isServerCert = False
-
-    # cadir, hostname, subj, p12password, isServerCert
-    cert = Certificate(
+    keytool = Keytool(
         module.params["cadir"],
         module.params["hostname"],
-        module.params["subj"],
-        module.params["p12password"],
-        isServerCert
+        module.params["store_password"],
+        module.params["hosts_to_trust"]
     )
 
-    isValid = cert.validate_config()
+    isValid = keytool.validate()
 
     if isValid["success"]:
         if module.params["state"] == "present":
-            isValid = cert.create_certificate()
+            isValid = keytool.build_trust_store()
         else:
-            isValid = cert.remove_certificate()
+            isValid = keytool.remove_trust_store()
 
     if not isValid["success"]:
         module.fail_json(msg=isValid["msg"])
