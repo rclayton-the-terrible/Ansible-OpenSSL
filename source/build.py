@@ -27,6 +27,6 @@ def replace_import(filename, ansibleModule, importStatement, libraryToInsert):
     destination.close()
 
 for file_config in FILES_TO_BUILD:
-    print "Building file {}.".format(file_config["file"])
+    print "Building file {0}.".format(file_config["file"])
     delete_old_build_file(file_config["file"])
     replace_import(file_config["file"], file_config["module"], file_config["import"], file_config["library"])
