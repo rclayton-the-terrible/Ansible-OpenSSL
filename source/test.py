@@ -8,7 +8,7 @@ line = "----------------------------------------------"
 
 cadir = "./testca"
 
-ca = CA(cadir, "/CN=TestCA/")
+ca = CA(cadir, "/CN=Test CA/")
 
 ca.validate_setup()
 
@@ -29,7 +29,7 @@ def createCert(hostname, subj, password, isServerCert):
 createCert("test.openampere.com", "/CN=Test/", "abc123!@#$", True)
 c1 = createCert("client.openampere.com", "/CN=Client/", "asdfaer13", False)
 createCert("client2.openampere.com", "/DC=com/DC=openampere/DC=test/CN=Client2", "asdf", False)
-s2 = createCert("test2.openampere.com", "/CN=Test2", "asdf987", True)
+s2 = createCert("test2.openampere.com", "/CN=Test 2", "asdf987", True)
 
 print line
 print "Removing cert for client.openampere.com"
