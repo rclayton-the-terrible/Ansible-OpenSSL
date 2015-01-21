@@ -4,7 +4,7 @@ from subprocess import call
 KEY_STENGTH = 2048
 DAYS_VALID  = 3653 # ~10 years
 TMPL_GEN_PK =   "openssl genrsa -out {0}.key.pem {1}"
-TMPL_GEN_REQ =  "openssl req -new -key {0}.key.pem -out {0}.req.pem -outform PEM -subj {1} -nodes"
+TMPL_GEN_REQ =  "openssl req -new -key {0}.key.pem -out {0}.req.pem -outform PEM -subj \"{1}\" -nodes"
 TMPL_SIGN_REQ = "openssl ca -config openssl.cnf -in {0}/{1}.req.pem -out {0}/{1}.cert.pem -notext -batch -extensions {2}"
 TMPL_PKCS12 =   "openssl pkcs12 -export -out {0}.keycert.p12 -in {0}.cert.pem -inkey {0}.key.pem -passout file:{1}"
 TMPL_REVOKE = "openssl ca -config openssl.cnf -revoke {0} -keyfile private/cakey.pem -cert cacert.pem"

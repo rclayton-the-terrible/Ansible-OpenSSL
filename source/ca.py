@@ -3,7 +3,7 @@ from subprocess import call
 
 KEY_STENGTH = 2048
 DAYS_VALID  = 3653 # ~10 years
-TMPL_CA_CERT = "openssl req -x509 -config openssl.cnf -newkey rsa:{0} -days {1} -out cacert.pem -outform PEM -subj {2} -nodes"
+TMPL_CA_CERT = "openssl req -x509 -config openssl.cnf -newkey rsa:{0} -days {1} -out cacert.pem -outform PEM -subj \"{2}\" -nodes"
 TMPL_CONVERT = "openssl x509 -in cacert.pem -out cacert.cer -outform DER"
 DEV_NULL = open('/dev/null', 'w')
 
