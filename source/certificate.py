@@ -1,7 +1,7 @@
 import os
 from subprocess import call
 
-KEY_STENGTH = 2048
+KEY_STRENGTH = 2048
 DAYS_VALID  = 3653 # ~10 years
 TMPL_GEN_PK =   "openssl genrsa -out {0}.key.pem {1}"
 TMPL_GEN_REQ =  "openssl req -new -key {0}.key.pem -out {0}.req.pem -outform PEM -subj \"{1}\" -nodes"
@@ -38,7 +38,7 @@ class Certificate:
             os.mkdir(dir)
 
     def generate_private_key(self):
-        cmd = TMPL_GEN_PK.format(self.hostname, KEY_STENGTH)
+        cmd = TMPL_GEN_PK.format(self.hostname, KEY_STRENGTH)
         self.execute_command(cmd)
 
     def generate_certificate_request(self):
