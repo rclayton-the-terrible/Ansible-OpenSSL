@@ -7,7 +7,7 @@ def main():
 
     BASE_MODULE_ARGS = dict(
         cadir = dict(default="/etc/certs"),
-        hostname = dict(required=True),
+        certname = dict(required=True),
         subj = dict(default="/DC=com/DC=example/CN=CA/"),
         p12password = dict(required=True),
         certtype = dict(default="server", choices=["server", "client"]),
@@ -25,10 +25,10 @@ def main():
     if module.params["certtype"] == "client":
         isServerCert = False
 
-    # cadir, hostname, subj, p12password, isServerCert
+    # cadir, certname, subj, p12password, isServerCert
     cert = Certificate(
         module.params["cadir"],
-        module.params["hostname"],
+        module.params["certname"],
         module.params["subj"],
         module.params["p12password"],
         isServerCert,

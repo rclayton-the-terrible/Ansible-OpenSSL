@@ -18,10 +18,10 @@ print "CA present"
 print line
 print r1
 
-def createCert(hostname, subj, password, isServerCert):
+def createCert(certname, subj, password, isServerCert):
     print line
-    print "Creating certificate for: {}".format(hostname)
-    cert = Certificate(cadir, hostname, subj, password, isServerCert)
+    print "Creating certificate for: {}".format(certname)
+    cert = Certificate(cadir, certname, subj, password, isServerCert)
     print cert.create_certificate()
     return cert
 

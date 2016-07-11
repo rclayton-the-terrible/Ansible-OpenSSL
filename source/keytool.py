@@ -8,10 +8,10 @@ DEV_NULL = open('/dev/null', 'w')
 class Keytool:
 
 
-    def __init__(self, cadir, hostname, store_password, hosts_to_trust):
+    def __init__(self, cadir, certname, store_password, hosts_to_trust):
 
         self.cadir = cadir
-        self.hostname = hostname
+        self.certname = certname
         self.store_password = store_password
         self.hosts_to_trust = hosts_to_trust
 
@@ -32,10 +32,10 @@ class Keytool:
             os.mkdir(dir)
 
     def get_truststore_path(self):
-        return "truststores" + os.sep + self.hostname + ".trust.jks"
+        return "truststores" + os.sep + self.certname + ".trust.jks"
 
     def get_storepass_path(self):
-        return self.hostname + ".storepass"
+        return self.certname + ".storepass"
 
     def resolve_certificate(self, host):
         server = self.cadir + "/server/{0}/{0}.cert.pem.pub".format(host)
@@ -71,7 +71,7 @@ class Keytool:
 
             try:
 
-                cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.hostname)
+                cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.certname)
                 self.execute_command(cmd)
                 changed = True
                 changes.append("Added the CA Certificate to the truststore.")
@@ -81,7 +81,7 @@ class Keytool:
                     hostcert = self.resolve_certificate(host)
 
                     if not hostcert is None:
-                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.hostname)
+                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.certname)
                         changes.append("Executing: '{0}'".format(cmd))
                         self.execute_command(cmd)
                         changed = True
