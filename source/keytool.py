@@ -38,8 +38,8 @@ class Keytool:
         return self.hostname + ".storepass"
 
     def resolve_certificate(self, host):
-        server = "./server/{0}.cert.pem".format(host)
-        client = "./client/{0}.cert.pem".format(host)
+        server = self.cadir + "/server/{0}/{0}.cert.pem.pub".format(host)
+        client = self.cadir + "/client/{0}.cert.pem.pub".format(host)
         if os.path.exists(server):
             return server
         elif os.path.exists(client):
@@ -88,7 +88,7 @@ class Keytool:
                         changes.append("Added '{0}' to the truststore.".format(host))
                     else:
                         success=False
-                        errors.append("Could not find cert for host: {0}".format(host))
+                        errors.append("Could not find cert for host: {0}".format(hostcert))
 
             except Exception as e:
                 success = False

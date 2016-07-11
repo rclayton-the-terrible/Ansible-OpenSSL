@@ -11,11 +11,9 @@ from subprocess import call
 KEY_STRENGTH = 2048
 DAYS_VALID  = 3653 # ~10 years
 TMPL_GEN_PK =   "openssl genrsa -out {0}.key.pem {1}"
-#  RDK WAY OF DOING IT BUT WE SPLIT IT UP HERE TMPL_GEN_REQ =  "openssl req -config {0}/openssl.cnf -new -nodes -keyout {1}.key.pem -out {1}.req.pem -subj \"{2}\""
 TMPL_GEN_REQ =  "openssl req -config {0}/openssl.cnf -new -key {1}.key.pem -out {1}.req.pem -outform PEM -subj \"{2}\" -nodes"
-# RDK WAY TMPL_SIGN_REQ = "openssl ca -passin file:cacertkey -in {1}/{2}.req.pem -out {1}/{2}.cert.pub.pem  -batch -extensions {3}"
 TMPL_SIGN_REQ = "openssl ca -config {0}/openssl.cnf -in {1}/{2}.req.pem -out {1}/{2}.cert.pem.pub  -batch -extensions {3}"
-TMPL_PKCS12 =   "openssl pkcs12 -export -out {0}.keycert.p12 -in {1}.cert.pem.pub -inkey {0}.key.pem -passout file:{1}"
+TMPL_PKCS12 =   "openssl pkcs12 -export -out {0}.keycert.p12 -in {0}.cert.pem.pub -inkey {0}.key.pem -passout file:{1}"
 TMPL_REVOKE = "openssl ca -config {0}/openssl.cnf -revoke {1} -keyfile private/cakey.pem -cert cacert.pem"
 TMPL_GEN_CRL = "openssl ca -config {0}/openssl.cnf -gencrl -keyfile private/cakey.pem -cert cacert.pem -out crl.pem"
 DEV_NULL = open('/dev/null', 'w')
@@ -312,18 +310,16 @@ class Certificate:
         self.execute_command(cmd)
   
     def log(self, msg):
-        logifle = open('/tmp/ca.log', 'a')
+        logifle = open('/private/tmp/ca.log', 'a')
         logifle.write(msg)
         logifle.write("\n")
         logifle.write("\n")
         logifle.close()
-    
 
     def sign_certificate_request(self, curdir):
         os.chdir("..")
         ext = "server_ca_extensions" if self.isServerCert else "client_ca_extensions"
         cmd = TMPL_SIGN_REQ.format(self.get_target_path(), self.get_target_path(), self.hostname, ext)
-        self.log("sign_certifcate_request")
         self.execute_command(cmd)
         os.chdir(curdir)
 
@@ -336,7 +332,7 @@ class Certificate:
             kcFile.write(cerPem)
 
     def export_key_as_PKCS12(self):
-        passwordFile = self.hostname + ".password"
+        passwordFile = self.get_target_path() + "/" +  self.hostname + ".password"
         with open(passwordFile, "w") as f:
             f.write(self.p12password)
         cmd = TMPL_PKCS12.format(self.hostname, passwordFile)
@@ -344,7 +340,7 @@ class Certificate:
         os.remove(passwordFile)
 
     def get_target_path(self):
-        return self.cadir + "/server/" + self.hostname  if self.isServerCert else "client"
+        return self.cadir + "/server/" + self.hostname  if self.isServerCert else self.cadir + "/client"
         
     def validate_config(self):
         if not os.path.exists(self.cadir):
@@ -383,35 +379,45 @@ class Certificate:
 
         target_path = self.get_target_path()
 
+        self.log("calling ensure with {0}".format(target_path))
         self.ensure_directory_exists(target_path)
 
         os.chdir(target_path)
 
 
-        if not os.path.exists(target_path + "/openssl" + ".cnf") and self.isServerCert:
+        if not os.path.exists(target_path + "/openssl" + ".cnf"): #and self.isServerCert:
             self.create_server_cnf(target_path)
             changes.append("Created server cnf for {0}.".format(self.hostname))
             changed = True
 
+        self.log("here {0}".format(os.path.exists(self.hostname + ".key.pem")))
         if not os.path.exists(self.hostname + ".key.pem"):
             self.generate_private_key()
             changes.append("Created private key for {0}.".format(self.hostname))
             changed = True
 
+        self.log("here2")
+        self.log("here {0}".format(os.path.exists(self.hostname + ".req.pem")))
         if not os.path.exists(self.hostname + ".req.pem"):
             self.generate_certificate_request()
             changes.append("Created certificate request for {0}".format(self.hostname))
             changed = True
 
+        self.log("here3")
+        self.log("here {0}".format(os.path.exists(self.hostname + ".cert.pem.pub")))
         if not os.path.exists(self.hostname + ".cert.pem.pub"):
             self.sign_certificate_request(target_path)
             changes.append("Signed certificate for {0}".format(self.hostname))
             changed = True
 
+        self.log("here4")
+        self.log("here {0}".format(os.path.exists(self.hostname + ".keycert.pem")))
         if not os.path.exists(self.hostname + ".keycert.pem"):
             self.create_key_cert_PEM()
             changes.append("Created key-cert PEM file for {0}".format(self.hostname))
 
+        self.log("here5")
+        self.log("here {0}".format(os.path.exists(self.hostname + ".keycert.p12")))
         if not os.path.exists(self.hostname + ".keycert.p12"):
             self.export_key_as_PKCS12()
             changes.append("Created PKCS12 version of the Private Key/Certificate Pair for {0}".format(self.hostname))

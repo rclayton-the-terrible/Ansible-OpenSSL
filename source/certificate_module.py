@@ -11,7 +11,8 @@ def main():
         subj = dict(default="/DC=com/DC=example/CN=CA/"),
         p12password = dict(required=True),
         certtype = dict(default="server", choices=["server", "client"]),
-        state = dict(default="present", choices=["present", "absent"])
+        state = dict(default="present", choices=["present", "absent"]),
+        subjectAltNames = dict(required=False)
     )
 
     module = AnsibleModule(
@@ -30,7 +31,8 @@ def main():
         module.params["hostname"],
         module.params["subj"],
         module.params["p12password"],
-        isServerCert
+        isServerCert,
+        module.params["subjectAltNames"]
     )
 
     isValid = cert.validate_config()
