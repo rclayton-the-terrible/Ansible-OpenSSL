@@ -278,9 +278,9 @@ authorityKeyIdentifier=keyid:always,issuer:always
 
 class Certificate:
 
-    def __init__(self, cadir, hostname, subj, p12password, isServerCert, subjectAltNames):
+    def __init__(self, cadir, certname, subj, p12password, isServerCert, subjectAltNames):
         self.cadir = self.normalize_directory_path(cadir)
-        self.hostname = hostname
+        self.certname = certname
         self.subj = subj
         self.p12password = p12password
         self.isServerCert = isServerCert
@@ -305,11 +305,11 @@ class Certificate:
             os.makedirs(dir)
 
     def generate_private_key(self):
-        cmd = TMPL_GEN_PK.format(self.get_target_path() + "/" + self.hostname, KEY_STRENGTH)
+        cmd = TMPL_GEN_PK.format(self.get_target_path() + "/" + self.certname, KEY_STRENGTH)
         self.execute_command(cmd)
 
     def generate_certificate_request(self):
-        cmd = TMPL_GEN_REQ.format(self.get_target_path(), self.get_target_path() + "/" + self.hostname, self.subj)
+        cmd = TMPL_GEN_REQ.format(self.get_target_path(), self.get_target_path() + "/" + self.certname, self.subj)
         self.execute_command(cmd)
   
     def log(self, msg):
@@ -322,28 +322,28 @@ class Certificate:
     def sign_certificate_request(self, curdir):
         os.chdir("..")
         ext = "server_ca_extensions" if self.isServerCert else "client_ca_extensions"
-        cmd = TMPL_SIGN_REQ.format(self.get_target_path(), self.get_target_path(), self.hostname, ext)
+        cmd = TMPL_SIGN_REQ.format(self.get_target_path(), self.get_target_path(), self.certname, ext)
         self.execute_command(cmd)
         os.chdir(curdir)
 
     def create_key_cert_PEM(self):
-        keyPem = self.read_file(self.get_target_path() + "/" + self.hostname + ".key.pem")
-        cerPem = self.read_file(self.get_target_path() + "/" + self.hostname + ".cert.pem.pub")
-        with open(self.get_target_path() + "/" + self.hostname + ".keycert.pem", "w") as kcFile:
+        keyPem = self.read_file(self.get_target_path() + "/" + self.certname + ".key.pem")
+        cerPem = self.read_file(self.get_target_path() + "/" + self.certname + ".cert.pem.pub")
+        with open(self.get_target_path() + "/" + self.certname + ".keycert.pem", "w") as kcFile:
             kcFile.write(keyPem)
             kcFile.write("\n")
             kcFile.write(cerPem)
 
     def export_key_as_PKCS12(self):
-        passwordFile = self.get_target_path() + "/" +  self.hostname + ".password"
+        passwordFile = self.get_target_path() + "/" +  self.certname + ".password"
         with open(passwordFile, "w") as f:
             f.write(self.p12password)
-        cmd = TMPL_PKCS12.format(self.hostname, passwordFile)
+        cmd = TMPL_PKCS12.format(self.certname, passwordFile)
         self.execute_command(cmd)
         os.remove(passwordFile)
 
     def get_target_path(self):
-        return self.cadir + "/server/" + self.hostname  if self.isServerCert else self.cadir + "/client"
+        return self.cadir + "/server/" + self.certname  if self.isServerCert else self.cadir + "/client"
         
     def validate_config(self):
         if not os.path.exists(self.cadir):
@@ -365,8 +365,8 @@ class Certificate:
         fileOpensslCnf = target_path + "/openssl" + ".cnf"
         if not os.path.exists(fileOpensslCnf):
             opensslCnf = open(fileOpensslCnf, "w")
-            alt_names = "DNS:" + self.hostname
-            opensslCnf.write(OPENSSL_CNF.format(self.cadir, self.hostname, alt_names))
+            alt_names = "DNS:" + self.certname
+            opensslCnf.write(OPENSSL_CNF.format(self.cadir, self.certname, alt_names))
             opensslCnf.close()
             changed = True        
 
@@ -390,40 +390,40 @@ class Certificate:
 
         if not os.path.exists(target_path + "/openssl" + ".cnf"): #and self.isServerCert:
             self.create_server_cnf(target_path)
-            changes.append("Created server cnf for {0}.".format(self.hostname))
+            changes.append("Created server cnf for {0}.".format(self.certname))
             changed = True
 
-        self.log("here {0}".format(os.path.exists(self.hostname + ".key.pem")))
-        if not os.path.exists(self.hostname + ".key.pem"):
+        self.log("here {0}".format(os.path.exists(self.certname + ".key.pem")))
+        if not os.path.exists(self.certname + ".key.pem"):
             self.generate_private_key()
-            changes.append("Created private key for {0}.".format(self.hostname))
+            changes.append("Created private key for {0}.".format(self.certname))
             changed = True
 
         self.log("here2")
-        self.log("here {0}".format(os.path.exists(self.hostname + ".req.pem")))
-        if not os.path.exists(self.hostname + ".req.pem"):
+        self.log("here {0}".format(os.path.exists(self.certname + ".req.pem")))
+        if not os.path.exists(self.certname + ".req.pem"):
             self.generate_certificate_request()
-            changes.append("Created certificate request for {0}".format(self.hostname))
+            changes.append("Created certificate request for {0}".format(self.certname))
             changed = True
 
         self.log("here3")
-        self.log("here {0}".format(os.path.exists(self.hostname + ".cert.pem.pub")))
-        if not os.path.exists(self.hostname + ".cert.pem.pub"):
+        self.log("here {0}".format(os.path.exists(self.certname + ".cert.pem.pub")))
+        if not os.path.exists(self.certname + ".cert.pem.pub"):
             self.sign_certificate_request(target_path)
-            changes.append("Signed certificate for {0}".format(self.hostname))
+            changes.append("Signed certificate for {0}".format(self.certname))
             changed = True
 
         self.log("here4")
-        self.log("here {0}".format(os.path.exists(self.hostname + ".keycert.pem")))
-        if not os.path.exists(self.hostname + ".keycert.pem"):
+        self.log("here {0}".format(os.path.exists(self.certname + ".keycert.pem")))
+        if not os.path.exists(self.certname + ".keycert.pem"):
             self.create_key_cert_PEM()
-            changes.append("Created key-cert PEM file for {0}".format(self.hostname))
+            changes.append("Created key-cert PEM file for {0}".format(self.certname))
 
         self.log("here5")
-        self.log("here {0}".format(os.path.exists(self.hostname + ".keycert.p12")))
-        if not os.path.exists(self.hostname + ".keycert.p12"):
+        self.log("here {0}".format(os.path.exists(self.certname + ".keycert.p12")))
+        if not os.path.exists(self.certname + ".keycert.p12"):
             self.export_key_as_PKCS12()
-            changes.append("Created PKCS12 version of the Private Key/Certificate Pair for {0}".format(self.hostname))
+            changes.append("Created PKCS12 version of the Private Key/Certificate Pair for {0}".format(self.certname))
             changed = True
 
         os.chdir(CURDIR)
@@ -436,7 +436,7 @@ class Certificate:
 
         os.chdir("..")
 
-        cmd = TMPL_REVOKE.format(self.cadir, CURDIR + os.sep + self.hostname + ".cert.pem.pub")
+        cmd = TMPL_REVOKE.format(self.cadir, CURDIR + os.sep + self.certname + ".cert.pem.pub")
         self.execute_command(cmd)
 
         cmd2 = TMPL_GEN_CRL.format(self.cadir)
@@ -459,29 +459,29 @@ class Certificate:
 
         os.chdir(target_path)
 
-        if os.path.exists(self.hostname + ".key.pem"):
-            os.remove(self.hostname + ".key.pem")
-            changes.append("Removed private key for {0}.".format(self.hostname))
+        if os.path.exists(self.certname + ".key.pem"):
+            os.remove(self.certname + ".key.pem")
+            changes.append("Removed private key for {0}.".format(self.certname))
             changed = True
 
-        if os.path.exists(self.hostname + ".req.pem"):
-            os.remove(self.hostname + ".req.pem")
-            changes.append("Removed certificate request for {0}".format(self.hostname))
+        if os.path.exists(self.certname + ".req.pem"):
+            os.remove(self.certname + ".req.pem")
+            changes.append("Removed certificate request for {0}".format(self.certname))
             changed = True
 
-        if os.path.exists(self.hostname + ".cert.pem.pub"):
+        if os.path.exists(self.certname + ".cert.pem.pub"):
             self.revoke_certificate()
-            os.remove(self.hostname + ".cert.pem.pub")
-            changes.append("Removed certificate for {0}".format(self.hostname))
+            os.remove(self.certname + ".cert.pem.pub")
+            changes.append("Removed certificate for {0}".format(self.certname))
             changed = True
 
-        if os.path.exists(self.hostname + ".keycert.pem"):
-            os.remove(self.hostname + ".keycert.pem")
-            changes.append("Removed key-cert PEM file for {0}".format(self.hostname))
+        if os.path.exists(self.certname + ".keycert.pem"):
+            os.remove(self.certname + ".keycert.pem")
+            changes.append("Removed key-cert PEM file for {0}".format(self.certname))
 
-        if os.path.exists(self.hostname + ".keycert.p12"):
-            os.remove(self.hostname + ".keycert.p12")
-            changes.append("Removed PKCS12 version of the Private Key/Certificate Pair for {0}".format(self.hostname))
+        if os.path.exists(self.certname + ".keycert.p12"):
+            os.remove(self.certname + ".keycert.p12")
+            changes.append("Removed PKCS12 version of the Private Key/Certificate Pair for {0}".format(self.certname))
             changed = True
 
         os.chdir(CURDIR)
@@ -495,7 +495,7 @@ def main():
 
     BASE_MODULE_ARGS = dict(
         cadir = dict(default="/etc/certs"),
-        hostname = dict(required=True),
+        certname = dict(required=True),
         subj = dict(default="/DC=com/DC=example/CN=CA/"),
         p12password = dict(required=True),
         certtype = dict(default="server", choices=["server", "client"]),
@@ -513,10 +513,10 @@ def main():
     if module.params["certtype"] == "client":
         isServerCert = False
 
-    # cadir, hostname, subj, p12password, isServerCert
+    # cadir, certname, subj, p12password, isServerCert
     cert = Certificate(
         module.params["cadir"],
-        module.params["hostname"],
+        module.params["certname"],
         module.params["subj"],
         module.params["p12password"],
         isServerCert,

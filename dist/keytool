@@ -11,14 +11,23 @@ DEV_NULL = open('/dev/null', 'w')
 class Keytool:
 
 
-    def __init__(self, cadir, hostname, store_password, hosts_to_trust):
+    def __init__(self, cadir, certname, store_password, hosts_to_trust, certtype):
 
         self.cadir = cadir
-        self.hostname = hostname
+        self.certname = certname
+        self.certtype = certtype
         self.store_password = store_password
         self.hosts_to_trust = hosts_to_trust
 
+    def log(self, msg):
+        logifle = open('/private/tmp/keytoo.log', 'a')
+        logifle.write(msg)
+        logifle.write("\n")
+        logifle.write("\n")
+        logifle.close()
+
     def execute_command(self, cmd):
+        self.log(cmd)
         call(cmd, shell=True, stdout=DEV_NULL, stderr=DEV_NULL)
 
     def validate(self):
@@ -34,11 +43,14 @@ class Keytool:
         if not os.path.exists(dir):
             os.mkdir(dir)
 
-    def get_truststore_path(self):
-        return "truststores" + os.sep + self.hostname + ".trust.jks"
+    def get_truststore_path(self, certtype):
+        if certtype == "keystore":
+          return "keystores" + os.sep + self.certname + ".keystore.jks"
+        else:
+          return "truststores" + os.sep + self.certname + ".trust.jks"
 
     def get_storepass_path(self):
-        return self.hostname + ".storepass"
+        return self.certname + ".storepass"
 
     def resolve_certificate(self, host):
         server = self.cadir + "/server/{0}/{0}.cert.pem.pub".format(host)
@@ -61,30 +73,47 @@ class Keytool:
 
         os.chdir(self.cadir)
 
-        self.ensure_directory_exists("truststores")
+        self.log("cadir " + self.cadir)
 
-        truststore_path = self.get_truststore_path()
+        if self.certtype == "truststore":
+          self.ensure_directory_exists("truststores")
+        else:
+          self.ensure_directory_exists("keystores")
+
+        truststore_path = self.get_truststore_path(self.certtype)
         storepass_path = self.get_storepass_path()
+        self.log("truststore_path " + truststore_path)
+        self.log("storepass_pass " + self.store_password)
+        self.log("storepass_path " + storepass_path)
 
         if not os.path.exists(truststore_path):
 
+            self.log("inside create")
             # Write the password out to file.
             with open(storepass_path, "w") as storepass:
                 storepass.write(self.store_password)
 
-            try:
+            self.log("store pass written")
 
-                cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.hostname)
-                self.execute_command(cmd)
-                changed = True
-                changes.append("Added the CA Certificate to the truststore.")
+            try:
+                self.log("The certytpe: " + self.certtype)
+
+                if self.certtype == "truststore":
+                  self.log("going in here when not supposed to")
+                  cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.certname)
+                  self.execute_command(cmd)
+                  changed = True
+                  changes.append("Added the CA Certificate to the truststore.")
+
+                self.log("Made it here")
+                #self.log("host_to_trust " + self.host_to_trust)
 
                 for host in self.hosts_to_trust:
 
                     hostcert = self.resolve_certificate(host)
 
                     if not hostcert is None:
-                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.hostname)
+                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.certname)
                         changes.append("Executing: '{0}'".format(cmd))
                         self.execute_command(cmd)
                         changed = True
@@ -119,7 +148,7 @@ class Keytool:
 
         os.chdir(self.cadir)
 
-        truststore_path = self.get_truststore_path()
+        truststore_path = self.get_truststore_path(self.certtype)
 
         if os.path.exists(truststore_path):
             os.remove(truststore_path)
@@ -137,10 +166,11 @@ def main():
 
     BASE_MODULE_ARGS = dict(
         cadir = dict(default="/etc/certs"),
-        hostname = dict(required=True),
+        certname = dict(required=True),
         store_password = dict(required=True),
         hosts_to_trust = dict(required=True, type="list"),
-        state = dict(default="present", choices=["present", "absent"])
+        state = dict(default="present", choices=["present", "absent"]),
+        certtype = dict(required=False, default="truststore", choices=["truststore","keystore"])
     )
 
     module = AnsibleModule(
@@ -150,9 +180,10 @@ def main():
 
     keytool = Keytool(
         module.params["cadir"],
-        module.params["hostname"],
+        module.params["certname"],
         module.params["store_password"],
-        module.params["hosts_to_trust"]
+        module.params["hosts_to_trust"],
+        module.params["certtype"],
     )
 
     isValid = keytool.validate()

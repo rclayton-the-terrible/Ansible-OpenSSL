@@ -5,8 +5,7 @@ BUILD_DIR = "../dist"
 FILES_TO_BUILD = [
     { "file": "ca", "module": "ca_module.py", "library": "ca.py", "import": "from ca import CA" },
     { "file": "certificate", "module": "certificate_module.py", "library": "certificate.py", "import": "from certificate import Certificate" },
-    { "file": "keytool", "module": "keytool_module.py", "library": "keytool.py", "import": "from keytool import Keytool" },
-    { "file": "keystore", "module": "keystore_module.py", "library": "keystore.py", "import": "from keystore import Keystore" }
+    { "file": "keytool", "module": "keytool_module.py", "library": "keytool.py", "import": "from keytool import Keytool" }
 ]
 
 def read_file(filename):
