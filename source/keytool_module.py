@@ -7,10 +7,11 @@ def main():
 
     BASE_MODULE_ARGS = dict(
         cadir = dict(default="/etc/certs"),
-        hostname = dict(required=True),
+        certname = dict(required=True),
         store_password = dict(required=True),
         hosts_to_trust = dict(required=True, type="list"),
-        state = dict(default="present", choices=["present", "absent"])
+        state = dict(default="present", choices=["present", "absent"]),
+        certtype = dict(required=False, default="truststore", choices=["truststore","keystore"])
     )
 
     module = AnsibleModule(
@@ -20,9 +21,10 @@ def main():
 
     keytool = Keytool(
         module.params["cadir"],
-        module.params["hostname"],
+        module.params["certname"],
         module.params["store_password"],
-        module.params["hosts_to_trust"]
+        module.params["hosts_to_trust"],
+        module.params["certtype"],
     )
 
     isValid = keytool.validate()

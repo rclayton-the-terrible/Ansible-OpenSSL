@@ -8,12 +8,20 @@ DEV_NULL = open('/dev/null', 'w')
 class Keytool:
 
 
-    def __init__(self, cadir, hostname, store_password, hosts_to_trust):
+    def __init__(self, cadir, certname, store_password, hosts_to_trust, certtype):
 
         self.cadir = cadir
-        self.hostname = hostname
+        self.certname = certname
+        self.certtype = certtype
         self.store_password = store_password
         self.hosts_to_trust = hosts_to_trust
+
+    def log(self, msg):
+        logifle = open('/private/tmp/keytoo.log', 'a')
+        logifle.write(msg)
+        logifle.write("\n")
+        logifle.write("\n")
+        logifle.close()
 
     def execute_command(self, cmd):
         call(cmd, shell=True, stdout=DEV_NULL, stderr=DEV_NULL)
@@ -31,15 +39,18 @@ class Keytool:
         if not os.path.exists(dir):
             os.mkdir(dir)
 
-    def get_truststore_path(self):
-        return "truststores" + os.sep + self.hostname + ".trust.jks"
+    def get_truststore_path(self, certtype):
+        if certtype == "keystore":
+          return "keystores" + os.sep + self.certname + ".keystore.jks"
+        else:
+          return "truststores" + os.sep + self.certname + ".trust.jks"
 
     def get_storepass_path(self):
-        return self.hostname + ".storepass"
+        return self.certname + ".storepass"
 
     def resolve_certificate(self, host):
-        server = "./server/{0}.cert.pem".format(host)
-        client = "./client/{0}.cert.pem".format(host)
+        server = self.cadir + "/server/{0}/{0}.cert.pem.pub".format(host)
+        client = self.cadir + "/client/{0}.cert.pem.pub".format(host)
         if os.path.exists(server):
             return server
         elif os.path.exists(client):
@@ -58,9 +69,13 @@ class Keytool:
 
         os.chdir(self.cadir)
 
-        self.ensure_directory_exists("truststores")
 
-        truststore_path = self.get_truststore_path()
+        if self.certtype == "truststore":
+          self.ensure_directory_exists("truststores")
+        else:
+          self.ensure_directory_exists("keystores")
+
+        truststore_path = self.get_truststore_path(self.certtype)
         storepass_path = self.get_storepass_path()
 
         if not os.path.exists(truststore_path):
@@ -69,26 +84,29 @@ class Keytool:
             with open(storepass_path, "w") as storepass:
                 storepass.write(self.store_password)
 
+
             try:
 
-                cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.hostname)
-                self.execute_command(cmd)
-                changed = True
-                changes.append("Added the CA Certificate to the truststore.")
+                if self.certtype == "truststore":
+                  cmd = TMPL_GEN_TS.format("CA", "cacert.pem", truststore_path, self.certname)
+                  self.execute_command(cmd)
+                  changed = True
+                  changes.append("Added the CA Certificate to the truststore.")
+
 
                 for host in self.hosts_to_trust:
 
                     hostcert = self.resolve_certificate(host)
 
                     if not hostcert is None:
-                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.hostname)
+                        cmd = TMPL_GEN_TS.format(host, hostcert, truststore_path, self.certname)
                         changes.append("Executing: '{0}'".format(cmd))
                         self.execute_command(cmd)
                         changed = True
                         changes.append("Added '{0}' to the truststore.".format(host))
                     else:
                         success=False
-                        errors.append("Could not find cert for host: {0}".format(host))
+                        errors.append("Could not find cert for host: {0}".format(hostcert))
 
             except Exception as e:
                 success = False
@@ -116,7 +134,7 @@ class Keytool:
 
         os.chdir(self.cadir)
 
-        truststore_path = self.get_truststore_path()
+        truststore_path = self.get_truststore_path(self.certtype)
 
         if os.path.exists(truststore_path):
             os.remove(truststore_path)
